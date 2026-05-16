@@ -11,7 +11,7 @@ load_dotenv()
 api_key = os.getenv("openweather_api_key")
 
 # Переменные для запроса
-base_url = "http://api.openweathermap.org/data/2.5/weather"
+base_url = "https://api.openweathermap.org/data/2.5/weather"
 cities = ["Moscow", "Saint Petersburg"]
 
 # Переменные для ожидания
@@ -44,6 +44,7 @@ def collect_weather_data(city: str) -> dict | None:
         
         if response.status_code == 200:
             weather_data = response.json()
+            return weather_data
         elif response.status_code == 429:
             print(f'{city}: Лимит запросов (429). Ждём 60 сек.')
             return collect_weather_data(city) # повторяем
@@ -88,6 +89,8 @@ def main():
         
         if data:
             save_raw_data(data, city, output_folder)
+        else:
+            print(f'Не удалось получить данные для {city}')
         
         if city != cities[-1]:
             print(f'Пауза {delay_time} сек перед следующим запросом.\n')
