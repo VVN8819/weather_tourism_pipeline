@@ -101,7 +101,7 @@ def collect_weather_data(city: str, logger: logging.Logger) -> dict | None:
 # Сохраняет сырые JSON-данные в файл с таймстампом
 def save_raw_data(data: dict, city: str, folder: Path, logger: logging.Logger):
     
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+    timestamp = datetime.now().strftime("%Y%m%d")
     filename = f'{city.lower().replace(" ", "_")}_{timestamp}.json'
     filepath = folder / filename
     
