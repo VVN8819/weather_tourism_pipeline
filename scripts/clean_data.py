@@ -90,6 +90,18 @@ def clean_data(raw_folder: Path) -> pd.DataFrame:
         
     df = pd.DataFrame(records)
     
+    # Валидация - проверить разумность данных (температура от -50 до +60°C)
+    if not df.empty and "temperature" in df.columns:
+        # True, если температура в диапазоне [-50, 60]
+        valid_temp_mask = (df["temperature"] >= -50) & (df["temperature"] <= 60)
+        invalid_count = (~valid_temp_mask).sum()
+        
+        if invalid_count > 0:
+            print(f'Валидация: исключено {invalid_count} строк с температурой вне диапазона [-50°C; +60°C]')
+            
+        # Оставляем только валидные строки + сбрасываем индекс
+        df = df[valid_temp_mask].copy().reset_index(drop=True)
+    
     # Время - привести к единому формату
     if not df.empty:
         df["collection_time"] = pd.to_datetime(df["collection_time"], errors="coerce")
@@ -110,6 +122,6 @@ if __name__ == "__main__":
     if not df_result.empty:
         print(f'\nРезультат:\n{df_result}')
     else:
-        print("\nDataFrame пустой. Проверьте наличие .json файлов в указанной папке.")
+        print('\nDataFrame пустой. Проверьте наличие .json файлов в указанной папке.')
 
     
