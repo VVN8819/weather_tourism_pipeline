@@ -79,7 +79,7 @@ def collect_weather_data(city: str, logger: logging.Logger) -> dict | None:
             weather_data = response.json()
             
             # Добавляем метаданные
-            weather_data["_metadata'"] = {
+            weather_data["_metadata"] = {
             "collection_time": datetime.now().isoformat(),
             "source": "openweathermap.org",
             "city_query": city

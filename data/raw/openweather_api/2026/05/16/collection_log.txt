@@ -103,3 +103,45 @@
 2026-05-16 19:39:59 | INFO     | Novosibirsk: Сохранено в data\raw\openweather_api\2026\05\16\novosibirsk_20260516.json
 2026-05-16 19:39:59 | INFO     | 
 Готово!
+2026-05-16 23:55:12 | INFO     | Папка для сохранения: data\raw\openweather_api\2026\05\16
+2026-05-16 23:55:23 | ERROR    | Moscow: Ошибка - ConnectTimeout: HTTPSConnectionPool(host='api.openweathermap.org', port=443): Max retries exceeded with url: /data/2.5/weather?q=Moscow&appid=4e9f02cda86003630a68ed39a0224ec8&units=metric&lang=ru (Caused by ConnectTimeoutError(<HTTPSConnection(host='api.openweathermap.org', port=443) at 0x1ef0932a1e0>, 'Connection to api.openweathermap.org timed out. (connect timeout=10)'))
+2026-05-16 23:55:23 | WARNING  | Не удалось получить данные для Moscow
+2026-05-16 23:55:23 | INFO     | Пауза 1.5 сек перед следующим запросом.
+
+2026-05-16 23:55:34 | ERROR    | Saint Petersburg: Ошибка - ConnectTimeout: HTTPSConnectionPool(host='api.openweathermap.org', port=443): Max retries exceeded with url: /data/2.5/weather?q=Saint+Petersburg&appid=4e9f02cda86003630a68ed39a0224ec8&units=metric&lang=ru (Caused by ConnectTimeoutError(<HTTPSConnection(host='api.openweathermap.org', port=443) at 0x1ef0932a600>, 'Connection to api.openweathermap.org timed out. (connect timeout=10)'))
+2026-05-16 23:55:34 | WARNING  | Не удалось получить данные для Saint Petersburg
+2026-05-16 23:55:34 | INFO     | Пауза 1.5 сек перед следующим запросом.
+
+2026-05-16 23:55:46 | ERROR    | Sochi: Ошибка - ConnectTimeout: HTTPSConnectionPool(host='api.openweathermap.org', port=443): Max retries exceeded with url: /data/2.5/weather?q=Sochi&appid=4e9f02cda86003630a68ed39a0224ec8&units=metric&lang=ru (Caused by ConnectTimeoutError(<HTTPSConnection(host='api.openweathermap.org', port=443) at 0x1ef09329a90>, 'Connection to api.openweathermap.org timed out. (connect timeout=10)'))
+2026-05-16 23:55:46 | WARNING  | Не удалось получить данные для Sochi
+2026-05-16 23:55:46 | INFO     | Пауза 1.5 сек перед следующим запросом.
+
+2026-05-16 23:55:57 | ERROR    | Kazan: Ошибка - ConnectTimeout: HTTPSConnectionPool(host='api.openweathermap.org', port=443): Max retries exceeded with url: /data/2.5/weather?q=Kazan&appid=4e9f02cda86003630a68ed39a0224ec8&units=metric&lang=ru (Caused by ConnectTimeoutError(<HTTPSConnection(host='api.openweathermap.org', port=443) at 0x1ef0932ae70>, 'Connection to api.openweathermap.org timed out. (connect timeout=10)'))
+2026-05-16 23:55:57 | WARNING  | Не удалось получить данные для Kazan
+2026-05-16 23:55:57 | INFO     | Пауза 1.5 сек перед следующим запросом.
+
+2026-05-16 23:56:09 | ERROR    | Novosibirsk: Ошибка - ConnectTimeout: HTTPSConnectionPool(host='api.openweathermap.org', port=443): Max retries exceeded with url: /data/2.5/weather?q=Novosibirsk&appid=4e9f02cda86003630a68ed39a0224ec8&units=metric&lang=ru (Caused by ConnectTimeoutError(<HTTPSConnection(host='api.openweathermap.org', port=443) at 0x1ef0932b5c0>, 'Connection to api.openweathermap.org timed out. (connect timeout=10)'))
+2026-05-16 23:56:09 | WARNING  | Не удалось получить данные для Novosibirsk
+2026-05-16 23:56:09 | INFO     | 
+Готово!
+2026-05-16 23:56:44 | INFO     | Папка для сохранения: data\raw\openweather_api\2026\05\16
+2026-05-16 23:56:45 | INFO     | Moscow: Данные получены (200)
+2026-05-16 23:56:45 | INFO     | Moscow: Сохранено в data\raw\openweather_api\2026\05\16\moscow_20260516.json
+2026-05-16 23:56:45 | INFO     | Пауза 1.5 сек перед следующим запросом.
+
+2026-05-16 23:56:47 | INFO     | Saint Petersburg: Данные получены (200)
+2026-05-16 23:56:47 | INFO     | Saint Petersburg: Сохранено в data\raw\openweather_api\2026\05\16\saint_petersburg_20260516.json
+2026-05-16 23:56:47 | INFO     | Пауза 1.5 сек перед следующим запросом.
+
+2026-05-16 23:56:49 | INFO     | Sochi: Данные получены (200)
+2026-05-16 23:56:49 | INFO     | Sochi: Сохранено в data\raw\openweather_api\2026\05\16\sochi_20260516.json
+2026-05-16 23:56:49 | INFO     | Пауза 1.5 сек перед следующим запросом.
+
+2026-05-16 23:56:52 | INFO     | Kazan: Данные получены (200)
+2026-05-16 23:56:52 | INFO     | Kazan: Сохранено в data\raw\openweather_api\2026\05\16\kazan_20260516.json
+2026-05-16 23:56:52 | INFO     | Пауза 1.5 сек перед следующим запросом.
+
+2026-05-16 23:56:54 | INFO     | Novosibirsk: Данные получены (200)
+2026-05-16 23:56:54 | INFO     | Novosibirsk: Сохранено в data\raw\openweather_api\2026\05\16\novosibirsk_20260516.json
+2026-05-16 23:56:54 | INFO     | 
+Готово!

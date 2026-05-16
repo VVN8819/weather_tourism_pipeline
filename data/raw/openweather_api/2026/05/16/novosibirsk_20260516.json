@@ -5,35 +5,32 @@
   },
   "weather": [
     {
-      "id": 501,
-      "main": "Rain",
-      "description": "дождь",
-      "icon": "10d"
+      "id": 804,
+      "main": "Clouds",
+      "description": "пасмурно",
+      "icon": "04n"
     }
   ],
   "base": "stations",
   "main": {
-    "temp": 13.61,
-    "feels_like": 12.54,
-    "temp_min": 13.61,
-    "temp_max": 13.61,
-    "pressure": 1013,
-    "humidity": 58,
-    "sea_level": 1013,
-    "grnd_level": 993
+    "temp": 8.61,
+    "feels_like": 6.84,
+    "temp_min": 8.61,
+    "temp_max": 8.61,
+    "pressure": 1014,
+    "humidity": 93,
+    "sea_level": 1014,
+    "grnd_level": 994
   },
   "visibility": 10000,
   "wind": {
-    "speed": 9,
-    "deg": 260
-  },
-  "rain": {
-    "1h": 1.74
+    "speed": 3,
+    "deg": 270
   },
   "clouds": {
-    "all": 75
+    "all": 100
   },
-  "dt": 1778931797,
+  "dt": 1778947121,
   "sys": {
     "type": 1,
     "id": 8958,
@@ -45,8 +42,8 @@
   "id": 1496747,
   "name": "Новосибирск",
   "cod": 200,
-  "_metadata'": {
-    "collection_time": "2026-05-16T19:39:59.257954",
+  "_metadata": {
+    "collection_time": "2026-05-16T23:56:54.646733",
     "source": "openweathermap.org",
     "city_query": "Novosibirsk"
   }

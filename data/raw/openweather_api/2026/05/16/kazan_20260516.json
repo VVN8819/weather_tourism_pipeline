@@ -13,25 +13,25 @@
   ],
   "base": "stations",
   "main": {
-    "temp": 28.34,
-    "feels_like": 27.51,
-    "temp_min": 28.34,
-    "temp_max": 28.34,
-    "pressure": 1012,
-    "humidity": 33,
-    "sea_level": 1012,
-    "grnd_level": 999
+    "temp": 26.34,
+    "feels_like": 26.34,
+    "temp_min": 26.34,
+    "temp_max": 26.34,
+    "pressure": 1013,
+    "humidity": 49,
+    "sea_level": 1013,
+    "grnd_level": 1000
   },
   "visibility": 10000,
   "wind": {
-    "speed": 6.57,
-    "deg": 132,
-    "gust": 9.77
+    "speed": 5.6,
+    "deg": 134,
+    "gust": 12.9
   },
   "clouds": {
-    "all": 62
+    "all": 57
   },
-  "dt": 1778931908,
+  "dt": 1778947108,
   "sys": {
     "type": 1,
     "id": 9038,
@@ -43,8 +43,8 @@
   "id": 551487,
   "name": "Казань",
   "cod": 200,
-  "_metadata'": {
-    "collection_time": "2026-05-16T19:39:57.089177",
+  "_metadata": {
+    "collection_time": "2026-05-16T23:56:52.322184",
     "source": "openweathermap.org",
     "city_query": "Kazan"
   }
