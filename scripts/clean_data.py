@@ -1,6 +1,7 @@
 import pandas as pd
 import json
 from pathlib import Path
+from datetime import datetime
 
 city_ru_map = {
     "Moscow": "Москва",
@@ -113,6 +114,17 @@ def clean_data(raw_folder: Path) -> pd.DataFrame:
         
     return df
 
+# Сохранение в CSV
+def save_cleaned_data(df: pd.DataFrame, output_dir: Path) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    date_str = datetime.now().strftime("%Y%m%d")
+    filename = f"weather_cleaned_{date_str}.csv"
+    filepath = output_dir / filename
+    
+    df.to_csv(filepath, index=False, encoding="utf-8")
+    print(f'Очищенные данные сохранены: {filepath}')
+    return filepath
+
 if __name__ == "__main__":
     # Путь к сырым данным
     raw_folder_path = find_latest_raw_folder(Path("data/raw/openweather_api"))
@@ -120,6 +132,8 @@ if __name__ == "__main__":
     df_result = clean_data(raw_folder_path)
     
     if not df_result.empty:
+        output_dir = Path("data/cleaned")
+        saved_path = save_cleaned_data(df_result, output_dir)
         print(f'\nРезультат:\n{df_result}')
     else:
         print('\nDataFrame пустой. Проверьте наличие .json файлов в указанной папке.')
