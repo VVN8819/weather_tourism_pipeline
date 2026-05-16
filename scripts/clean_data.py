@@ -2,6 +2,14 @@ import pandas as pd
 import json
 from pathlib import Path
 
+city_ru_map = {
+    "Moscow": "Москва",
+    "Saint Petersburg": "Санкт-Петербург",
+    "Sochi": "Сочи",
+    "Kazan": "Казань",
+    "Novosibirsk": "Новосибирск"
+}
+
 # Находит самую свежую по дате папку в raw/openweather_api
 def find_latest_raw_folder(base_path: Path) -> Path:
     
@@ -15,27 +23,34 @@ def find_latest_raw_folder(base_path: Path) -> Path:
 
 # Очистка:
 # 1. Температуру - привести к целым числам
+# 2. Названия городов - стандартизировать на русском языке
 def clean_data(raw_folder: Path) -> pd.DataFrame:
     
     records = []
-    
-    print(f'Ищем файлы в: {raw_folder.absolute()}')
     
     # Читает все JSON из папки RAW, извлекает город и температуру
     for json_file in raw_folder.glob("*.json"):
         with open(json_file, "r", encoding="utf-8") as f:
             data = json.load(f)
             
-        city = data.get("name", "Unknown")
-        temp_raw = data.get("main", {}).get("temp")
+        city_en = data.get("name", "Unknown")
+        temp_int = data.get("main", {}).get("temp")
+        #feel_temp = data.get("main", {}).get("feels_like")
         
-        if temp_raw is not None:
+        # Названия городов - стандартизировать на русском языке
+        city_ru = city_ru_map.get(city_en, city_en)
+        
+        if city_ru != city_en:
+            print(f'{city_en} -> {city_ru}')
+        
+        # Температуру - привести к целым числам
+        if temp_int is not None:
             records.append({
-                "city": city,
-                "temp_int": round(temp_raw) # округление
+                "city": city_ru,
+                "temperature": round(temp_int) # округление
             })
         else:
-            print(f'Пропуск {city}: поле температуры отсутствует')
+            print(f'Пропуск {city_en}: поле температуры отсутствует')
         
     df = pd.DataFrame(records)
     
@@ -49,5 +64,7 @@ if __name__ == "__main__":
     
     if not df_result.empty:
         print(f'\nРезультат:\n{df_result}')
+    else:
+        print("\nDataFrame пустой. Проверьте наличие .json файлов в указанной папке.")
 
     
