@@ -2,6 +2,9 @@ import requests
 import time
 from dotenv import load_dotenv
 import os
+import json
+from pathlib import Path
+from datetime import datetime
 
 # Загружает API из файла .env
 load_dotenv()
@@ -13,6 +16,18 @@ cities = ["Moscow", "Saint Petersburg"]
 
 # Переменные для ожидания
 delay_time = 1.5
+
+# Переменные для сохранения
+output_dir = Path("data/raw/openweather_api")
+
+# Создаёт папку с датами
+def create_date_folder():
+    
+    today = datetime.now()
+    data_dir = output_dir / str(today.year) / f"{today.month:02d}" / f"{today.day:02d}"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir
+    
 
 # Запрос по API для города. Возврат словаря с данными
 def collect_weather_data(city: str) -> dict | None:
@@ -39,18 +54,40 @@ def collect_weather_data(city: str) -> dict | None:
         print(f'{city}: Ошибка - {e}')
     
     print(f'Ответ: {city} - {response}')
+    return None
+
+# Сохраняет сырые JSON-данные в файл с таймстампом
+def save_raw_data(data: dict, city: str, folder: Path):
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+    filename = f'{city.lower()}_{timestamp}.json'
+    filepath = folder / filename
+    
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        
+    print(f'Сохранено: {filepath}')
 
 # Главная функция:
 # - запрос в collect_weather_data
+# - запрос в create_date_folder
+# - запрос в save_raw_data
 def main():
     # Наличие API ключа
     if not api_key:
         print('Ошибка: Не найден API-ключ в переменной openweather_api_key. Проверьте файл .env.')
         return
     
+    # Папка для сохранения:
+    output_folder = create_date_folder()
+    print(f'Папка для сохранения: {output_folder}')
+    
     # Перебираем города
     for city in cities:
         data = collect_weather_data(city)
+        
+        if data:
+            save_raw_data(data, city, output_folder)
         
         if city != cities[-1]:
             print(f'Пауза {delay_time} сек перед следующим запросом.\n')
