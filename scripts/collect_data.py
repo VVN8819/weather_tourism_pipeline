@@ -5,6 +5,39 @@ import os
 import json
 from pathlib import Path
 from datetime import datetime
+import logging
+
+# ============== Логирование  ===================
+def setup_logger(log_folder: Path) -> logging.Logger:
+    
+    logger = logging.getLogger("weather_pipeline")
+    logger.setLevel(logging.INFO)
+    
+    # Очищаем старые handlers
+    if logger.hasHandlers():
+        logger.handlers.clear()
+    
+    # сообщение
+    formatter = logging.Formatter(
+        '%(asctime)s | %(levelname)-8s | %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # сохраняем Лог в файл
+    file_handler = logging.FileHandler(
+        log_folder / "collection_log.txt",
+        mode="a",
+        encoding="utf-8"
+    )
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    
+    # Лог в консоль (для удобства отладки)
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    
+    return logger
 
 # Загружает API из файла .env
 load_dotenv()
@@ -30,7 +63,7 @@ def create_date_folder():
     
 
 # Запрос по API для города. Возврат словаря с данными
-def collect_weather_data(city: str) -> dict | None:
+def collect_weather_data(city: str, logger: logging.Logger) -> dict | None:
     
     url_params_dict = {
         "q": city,
@@ -51,30 +84,33 @@ def collect_weather_data(city: str) -> dict | None:
             "source": "openweathermap.org",
             "city_query": city
             }
+            logger.info(f'{city}: Данные получены (200)')
             return weather_data
         elif response.status_code == 429:
-            print(f'{city}: Лимит запросов (429). Ждём 60 сек.')
-            return collect_weather_data(city) # повторяем
+            logger.warning(f'{city}: Лимит запросов (429). Ждём 60 сек.')
+            time.sleep(60)
+            return collect_weather_data(city, logger) # повторяем
         else:
-            print(f'{city}: Неожиданная ошибка {response.status_code} — {response.text}')
+            logger.error(f'{city}: Неожиданная ошибка {response.status_code} — {response.text}')
         
     except requests.exceptions.RequestException as e:
-        print(f'{city}: Ошибка - {e}')
+        logger.error(f'{city}: Ошибка - {type(e).__name__}: {e}')
     
-    print(f'Ответ: {city} - {response}')
     return None
 
 # Сохраняет сырые JSON-данные в файл с таймстампом
-def save_raw_data(data: dict, city: str, folder: Path):
+def save_raw_data(data: dict, city: str, folder: Path, logger: logging.Logger):
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    filename = f'{city.lower()}_{timestamp}.json'
+    filename = f'{city.lower().replace(" ", "_")}_{timestamp}.json'
     filepath = folder / filename
     
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-        
-    print(f'Сохранено: {filepath}')
+    try:
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        logger.info(f'{city}: Сохранено в {filepath}')
+    except IOError as e:
+        logger.error(f'{city}: Не удалось сохранить файл — {e}')
 
 # Главная функция:
 # - запрос в collect_weather_data
@@ -88,22 +124,25 @@ def main():
     
     # Папка для сохранения:
     output_folder = create_date_folder()
-    print(f'Папка для сохранения: {output_folder}')
+    # вызов логирования
+    logger = setup_logger(output_folder)
+    logger.info(f'Папка для сохранения: {output_folder}')
     
     # Перебираем города
     for city in cities:
-        data = collect_weather_data(city)
+        data = collect_weather_data(city, logger)
         
         if data:
-            save_raw_data(data, city, output_folder)
+            save_raw_data(data, city, output_folder, logger)
         else:
-            print(f'Не удалось получить данные для {city}')
+            logger.warning(f'Не удалось получить данные для {city}')
         
         if city != cities[-1]:
-            print(f'Пауза {delay_time} сек перед следующим запросом.\n')
+            logger.info(f'Пауза {delay_time} сек перед следующим запросом.\n')
             time.sleep(delay_time)
         
-    print('\nГотово!')
+    logger.info('\nГотово!')
+    print(f"\nЛог сохранён в: {output_folder / 'collection_log.txt'}")
 
 # запуск
 if __name__ == "__main__":
