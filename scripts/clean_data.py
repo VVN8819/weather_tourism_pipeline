@@ -34,8 +34,11 @@ def clean_data(raw_folder: Path) -> pd.DataFrame:
         with open(json_file, "r", encoding="utf-8") as f:
             data = json.load(f)
             
-        temp_int = data.get("main", {}).get("temp")
-        #feel_temp = data.get("main", {}).get("feels_like")
+        main_data = data.get("main", {})
+        temp_int = main_data.get("temp")
+        feel_temp = main_data.get("feels_like")
+        humidity_raw = main_data.get("humidity")
+        pressure_raw = main_data.get("pressure")
         
         # Названия городов - стандартизировать на русском языке
         city_en = data.get("name", "Unknown")
@@ -43,6 +46,13 @@ def clean_data(raw_folder: Path) -> pd.DataFrame:
         
         if city_ru != city_en:
             print(f'{city_en} -> {city_ru}')
+        
+        wind_data = data.get("wind", {})
+        wind_speed_raw = wind_data.get("speed")
+        
+        weather_data = data.get("weather", [])
+        weather_raw_desc = weather_data[0].get("description", "") if weather_data else ""
+        weather_description = weather_raw_desc.strip().lower() if weather_raw_desc else None
         
         # Время - привести к единому формату
         metadata = data.get("_metadata", {})
@@ -55,9 +65,23 @@ def clean_data(raw_folder: Path) -> pd.DataFrame:
         
         # Температуру - привести к целым числам
         if temp_int is not None:
+            # Конвертация давления: гПа в мм рт.ст.
+            pressure_mmhg = None
+            if pressure_raw is not None:
+                pressure_mmhg = round(pressure_raw * 0.750062)
+                
+            wind_speed_ms = None
+            if wind_speed_raw is not None:
+                wind_speed_ms = round(wind_speed_raw, 1)
+            
             records.append({
                 "city": city_ru,
                 "temperature": round(temp_int), # округление
+                "feels_like": round(feel_temp) if feel_temp is not None else None,
+                "humidity": humidity_raw,
+                "pressure": pressure_mmhg,
+                "wind_speed": wind_speed_ms,
+                "weather_description": weather_description,
                 "date": dt_raw,
                 "collection_time": col_time_raw
             })
@@ -70,7 +94,11 @@ def clean_data(raw_folder: Path) -> pd.DataFrame:
     if not df.empty:
         df["collection_time"] = pd.to_datetime(df["collection_time"], errors="coerce")
         df["date"] = pd.to_datetime(df["date"], unit="s", errors="coerce")
-    
+        df["humidity"] = pd.to_numeric(df["humidity"], errors="coerce").astype("Int64")
+        df["pressure"] = pd.to_numeric(df["pressure"], errors="coerce").astype("Int64")
+        df["wind_speed"] = pd.to_numeric(df["wind_speed"], errors="coerce").astype("Float64")
+        df["weather_description"] = df["weather_description"].astype("string")
+        
     return df
 
 if __name__ == "__main__":
