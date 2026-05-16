@@ -24,6 +24,7 @@ def find_latest_raw_folder(base_path: Path) -> Path:
 # Очистка:
 # 1. Температуру - привести к целым числам
 # 2. Названия городов - стандартизировать на русском языке
+# 3. Время - привести к единому формату
 def clean_data(raw_folder: Path) -> pd.DataFrame:
     
     records = []
@@ -33,26 +34,42 @@ def clean_data(raw_folder: Path) -> pd.DataFrame:
         with open(json_file, "r", encoding="utf-8") as f:
             data = json.load(f)
             
-        city_en = data.get("name", "Unknown")
         temp_int = data.get("main", {}).get("temp")
         #feel_temp = data.get("main", {}).get("feels_like")
         
         # Названия городов - стандартизировать на русском языке
+        city_en = data.get("name", "Unknown")
         city_ru = city_ru_map.get(city_en, city_en)
         
         if city_ru != city_en:
             print(f'{city_en} -> {city_ru}')
         
+        # Время - привести к единому формату
+        metadata = data.get("_metadata", {})
+        col_time_raw = metadata.get("collection_time")
+        dt_raw = data.get("dt")
+        
+        # Если ключа нет
+        if col_time_raw is None and "_metadata" in data:
+            print(f"В {json_file.name} -> _metadata.keys(): {list(data['_metadata'].keys())}")
+        
         # Температуру - привести к целым числам
         if temp_int is not None:
             records.append({
                 "city": city_ru,
-                "temperature": round(temp_int) # округление
+                "temperature": round(temp_int), # округление
+                "date": dt_raw,
+                "collection_time": col_time_raw
             })
         else:
             print(f'Пропуск {city_en}: поле температуры отсутствует')
         
     df = pd.DataFrame(records)
+    
+    # Время - привести к единому формату
+    if not df.empty:
+        df["collection_time"] = pd.to_datetime(df["collection_time"], errors="coerce")
+        df["date"] = pd.to_datetime(df["date"], unit="s", errors="coerce")
     
     return df
 
