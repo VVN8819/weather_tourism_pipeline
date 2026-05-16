@@ -12,7 +12,7 @@ api_key = os.getenv("openweather_api_key")
 
 # Переменные для запроса
 base_url = "https://api.openweathermap.org/data/2.5/weather"
-cities = ["Moscow", "Saint Petersburg"]
+cities = ["Moscow", "Saint Petersburg", "Sochi", "Kazan", "Novosibirsk"]
 
 # Переменные для ожидания
 delay_time = 1.5
@@ -44,6 +44,13 @@ def collect_weather_data(city: str) -> dict | None:
         
         if response.status_code == 200:
             weather_data = response.json()
+            
+            # Добавляем метаданные
+            weather_data["_metadata'"] = {
+            "collection_time": datetime.now().isoformat(),
+            "source": "openweathermap.org",
+            "city_query": city
+            }
             return weather_data
         elif response.status_code == 429:
             print(f'{city}: Лимит запросов (429). Ждём 60 сек.')

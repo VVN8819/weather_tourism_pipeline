@@ -1,0 +1,51 @@
+{
+  "coord": {
+    "lon": 39.7303,
+    "lat": 43.6
+  },
+  "weather": [
+    {
+      "id": 804,
+      "main": "Clouds",
+      "description": "пасмурно",
+      "icon": "04d"
+    }
+  ],
+  "base": "stations",
+  "main": {
+    "temp": 16.05,
+    "feels_like": 16.03,
+    "temp_min": 16.05,
+    "temp_max": 16.05,
+    "pressure": 1009,
+    "humidity": 89,
+    "sea_level": 1009,
+    "grnd_level": 994
+  },
+  "visibility": 10000,
+  "wind": {
+    "speed": 2.57,
+    "deg": 277,
+    "gust": 2.25
+  },
+  "clouds": {
+    "all": 99
+  },
+  "dt": 1778919190,
+  "sys": {
+    "type": 1,
+    "id": 8972,
+    "country": "RU",
+    "sunrise": 1778896533,
+    "sunset": 1778949571
+  },
+  "timezone": 10800,
+  "id": 491422,
+  "name": "Сочи",
+  "cod": 200,
+  "_metadata'": {
+    "collection_time": "2026-05-16T16:12:57.775660",
+    "source": "openweathermap.org",
+    "city_query": "Sochi"
+  }
+}
