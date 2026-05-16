@@ -5,32 +5,32 @@
   },
   "weather": [
     {
-      "id": 804,
+      "id": 803,
       "main": "Clouds",
-      "description": "пасмурно",
+      "description": "облачно с прояснениями",
       "icon": "04d"
     }
   ],
   "base": "stations",
   "main": {
-    "temp": 11.14,
-    "feels_like": 10.69,
-    "temp_min": 11.08,
-    "temp_max": 11.14,
-    "pressure": 1000,
-    "humidity": 91,
-    "sea_level": 1000,
-    "grnd_level": 1000
+    "temp": 12.25,
+    "feels_like": 11.7,
+    "temp_min": 12.08,
+    "temp_max": 12.25,
+    "pressure": 1005,
+    "humidity": 83,
+    "sea_level": 1005,
+    "grnd_level": 1003
   },
   "visibility": 10000,
   "wind": {
-    "speed": 4,
+    "speed": 6,
     "deg": 220
   },
   "clouds": {
-    "all": 100
+    "all": 75
   },
-  "dt": 1778918977,
+  "dt": 1778931772,
   "sys": {
     "type": 2,
     "id": 2045711,
@@ -43,7 +43,7 @@
   "name": "Санкт-Петербург",
   "cod": 200,
   "_metadata'": {
-    "collection_time": "2026-05-16T16:12:55.426316",
+    "collection_time": "2026-05-16T19:39:52.686621",
     "source": "openweathermap.org",
     "city_query": "Saint Petersburg"
   }

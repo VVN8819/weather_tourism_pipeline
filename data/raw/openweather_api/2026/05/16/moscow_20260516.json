@@ -13,28 +13,28 @@
   ],
   "base": "stations",
   "main": {
-    "temp": 19.49,
-    "feels_like": 18.88,
-    "temp_min": 19.08,
-    "temp_max": 19.63,
-    "pressure": 1007,
+    "temp": 21.32,
+    "feels_like": 20.89,
+    "temp_min": 20.29,
+    "temp_max": 22.24,
+    "pressure": 1009,
     "humidity": 53,
-    "sea_level": 1007,
-    "grnd_level": 989
+    "sea_level": 1009,
+    "grnd_level": 990
   },
   "visibility": 10000,
   "wind": {
-    "speed": 3.28,
-    "deg": 215,
-    "gust": 4.07
+    "speed": 2.23,
+    "deg": 226,
+    "gust": 2.67
   },
   "clouds": {
-    "all": 0
+    "all": 3
   },
-  "dt": 1778918194,
+  "dt": 1778931200,
   "sys": {
     "type": 2,
-    "id": 2094500,
+    "id": 2109950,
     "country": "RU",
     "sunrise": 1778894202,
     "sunset": 1778952917
@@ -42,5 +42,10 @@
   "timezone": 10800,
   "id": 524901,
   "name": "Москва",
-  "cod": 200
+  "cod": 200,
+  "_metadata'": {
+    "collection_time": "2026-05-16T19:39:50.476454",
+    "source": "openweathermap.org",
+    "city_query": "Moscow"
+  }
 }

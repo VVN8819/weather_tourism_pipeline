@@ -13,25 +13,25 @@
   ],
   "base": "stations",
   "main": {
-    "temp": 16.05,
-    "feels_like": 16.03,
-    "temp_min": 16.05,
-    "temp_max": 16.05,
-    "pressure": 1009,
-    "humidity": 89,
-    "sea_level": 1009,
-    "grnd_level": 994
+    "temp": 17.05,
+    "feels_like": 16.98,
+    "temp_min": 17.05,
+    "temp_max": 17.05,
+    "pressure": 1010,
+    "humidity": 83,
+    "sea_level": 1010,
+    "grnd_level": 995
   },
   "visibility": 10000,
   "wind": {
-    "speed": 2.57,
-    "deg": 277,
-    "gust": 2.25
+    "speed": 1.79,
+    "deg": 242,
+    "gust": 1.98
   },
   "clouds": {
     "all": 99
   },
-  "dt": 1778919190,
+  "dt": 1778931979,
   "sys": {
     "type": 1,
     "id": 8972,
@@ -44,7 +44,7 @@
   "name": "Сочи",
   "cod": 200,
   "_metadata'": {
-    "collection_time": "2026-05-16T16:12:57.775660",
+    "collection_time": "2026-05-16T19:39:54.890615",
     "source": "openweathermap.org",
     "city_query": "Sochi"
   }
