@@ -21,6 +21,14 @@ city_timezone = {
     "Новосибирск": "UTC+7"
 }
 
+city_population = {
+    "Москва": 13100000,
+    "Санкт-Петербург": 5600000,
+    "Сочи": 450000,
+    "Казань": 1300000,
+    "Новосибирск": 1630000
+}
+
 # ============== Логирование  ===================
 def setup_logger(log_dir: Path) -> logging.Logger:
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -89,6 +97,19 @@ def enrich_timezone(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
      
     return df
 
+# добавить к данным о погоде Примерное население города
+def enrich_population(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+    logger.info("Добавление колонки 'population'")
+    df["population"] = df["city"].map(city_population)
+    df["population"] = pd.to_numeric(df["population"], errors="coerce").astype("Int64")
+    missing = df[df["population"].isna()]["city"].drop_duplicates().tolist()
+    if missing:
+        logger.warning(f'Не найдено население для: {missing}')
+    else:
+        logger.info('Население городов успешно добавлено.')
+     
+    return df
+
 # Сохранение
 def save_enriched_data(df: pd.DataFrame, output_dir: Path, logger: logging.Logger) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -117,11 +138,12 @@ if __name__ == "__main__":
         # Применяем enrich
         df = enrich_geo(df, logger)
         df = enrich_timezone(df, logger)
+        df = enrich_population(df, logger)
         
         # Сохраняем обновления
         save_enriched_data(df, enriched_der, logger)
         logger.info(f'Добавление завершено')
         
-        print(df)
+        logger.info(f'\nРезультат:\n{df}')
     except Exception as e:
         logger.error(f'Ошибка выполнения: {e}')
