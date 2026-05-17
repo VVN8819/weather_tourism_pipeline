@@ -12,6 +12,15 @@ city_federal_district = {
     "Новосибирск": "Сибирский ФО"
 }
 
+# Справочник: Часовой пояс
+city_timezone = {
+    "Москва": "UTC+3",
+    "Санкт-Петербург": "UTC+3",
+    "Сочи": "UTC+3",
+    "Казань": "UTC+3",
+    "Новосибирск": "UTC+7"
+}
+
 # ============== Логирование  ===================
 def setup_logger(log_dir: Path) -> logging.Logger:
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -55,10 +64,9 @@ def find_latest_cleaned_csv(base_path: Path) -> Path:
     # Берём файл с самым поздним временем изменения
     return max(files, key=lambda p: p.stat().st_mtime)
 
-def enrich_table(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+# добавить к данным о погоде Федеральный округ
+def enrich_geo(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
     logger.info("Добавление колонки 'federal_district'")
-    
-    # добавить к данным о погоде Федеральный округ
     df["federal_district"] = df["city"].map(city_federal_district)
     # города не в списке
     missing_cities = df[df["federal_district"].isna()]["city"].drop_duplicates().tolist()
@@ -66,7 +74,19 @@ def enrich_table(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
         logger.warning(f'Не найдены в справочнике Федеральный округ: {missing_cities}')
     else:
         logger.info('Все города успешно сопоставлены с федеральными округами.')
-        
+     
+    return df
+
+# добавить к данным о погоде Часовой пояс
+def enrich_timezone(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+    logger.info("Добавление колонки 'timezone'")
+    df["timezone"] = df["city"].map(city_timezone)
+    missing = df[df["timezone"].isna()]["city"].drop_duplicates().tolist()
+    if missing:
+        logger.warning(f'Не найден часовой пояс для: {missing}')
+    else:
+        logger.info('Часовые пояса успешно добавлены.')
+     
     return df
 
 # Сохранение
@@ -94,12 +114,14 @@ if __name__ == "__main__":
         df = pd.read_csv(latest_csv)
         logger.info(f'Загружено строк: {len(df)}')
         
-        # Применяем enrich_table
-        df = enrich_table(df, logger)
-        print(df)
+        # Применяем enrich
+        df = enrich_geo(df, logger)
+        df = enrich_timezone(df, logger)
         
         # Сохраняем обновления
         save_enriched_data(df, enriched_der, logger)
         logger.info(f'Добавление завершено')
+        
+        print(df)
     except Exception as e:
         logger.error(f'Ошибка выполнения: {e}')
