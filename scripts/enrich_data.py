@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
+import numpy as np
 
 # Справочник: Федеральный округ
 city_federal_district = {
@@ -101,6 +102,33 @@ def enrich_table(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
      
     return df
 
+# Расчёт шкалы комфорта для туризма
+def enrich_comfort_index(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+    logger.info("Расчёт индекса комфортности погоды для туризма.")
+    
+    t = df["temperature"]
+    h = df["humidity"]
+    w = df["wind_speed"]
+    
+    # Проверка на наличие данных
+    valid = t.notna() & h.notna() & w.notna()
+    
+    ideal = (t.between(18, 26)) & (h.between(40, 70)) & (w < 5)
+    comfort = (t.between(15, 30)) & (h.between(30, 80)) & (w < 8)
+    accept = (t.between(5, 35)) & (w < 12)
+    
+    df['comfort_index'] = np.select(
+        [valid & ideal, valid & comfort, valid & accept],
+        ["Идеально", "Комфортно", "Приемлемо"],
+        default="Некомфортно"
+    )
+    df.loc[~valid, 'comfort_index'] = "Недостаточно данных"
+    
+    # Лог
+    dist = df['comfort_index'].value_counts().to_dict()
+    logger.info(f'Распределение по уровням: {dist}')
+    return df
+
 # Сохранение
 def save_enriched_data(df: pd.DataFrame, output_dir: Path, logger: logging.Logger) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -116,7 +144,7 @@ if __name__ == "__main__":
     logger.info('Запуск слоя ENRICHED')
     
     cleaned_dir = Path("data/cleaned")
-    enriched_der = Path("data/enriched")
+    enriched_dir = Path("data/enriched")
     try:
         # Находим последний очищенный файл
         latest_csv = find_latest_cleaned_csv(cleaned_dir)
@@ -128,9 +156,10 @@ if __name__ == "__main__":
         
         # Применяем enrich
         df = enrich_table(df, logger)
+        df = enrich_comfort_index(df, logger)
         
         # Сохраняем обновления
-        save_enriched_data(df, enriched_der, logger)
+        save_enriched_data(df, enriched_dir, logger)
         logger.info(f'Добавление завершено')
         
         logger.info(f'\nРезультат:\n{df}')
