@@ -29,6 +29,14 @@ city_population = {
     "Новосибирск": 1630000
 }
 
+tourism_season_dict = {
+    "Москва": "Круглогодично",
+    "Санкт-Петербург": "Май-Сентябрь",
+    "Сочи": "Май-Октябрь",
+    "Казань": "Май-Сентябрь",
+    "Новосибирск": "Июнь-Август"
+}
+
 # ============== Логирование  ===================
 def setup_logger(log_dir: Path) -> logging.Logger:
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -72,41 +80,24 @@ def find_latest_cleaned_csv(base_path: Path) -> Path:
     # Берём файл с самым поздним временем изменения
     return max(files, key=lambda p: p.stat().st_mtime)
 
-# добавить к данным о погоде Федеральный округ
-def enrich_geo(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
-    logger.info("Добавление колонки 'federal_district'")
+# обогащение данных о погоде
+def enrich_table(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+    logger.info("Обогащение данных встроенными справочниками")
+    
+    # применение справочников к колонке city
     df["federal_district"] = df["city"].map(city_federal_district)
+    df["timezone"] = df["city"].map(city_timezone)
+    df["population"] = df["city"].map(city_population)
+    df["tourism_season"] = df["city"].map(tourism_season_dict)
+    
+    df["population"] = pd.to_numeric(df["population"], errors="coerce").astype("Int64")
+    
     # города не в списке
     missing_cities = df[df["federal_district"].isna()]["city"].drop_duplicates().tolist()
     if missing_cities:
-        logger.warning(f'Не найдены в справочнике Федеральный округ: {missing_cities}')
+        logger.warning(f'Не найдены в справочнике: {missing_cities}')
     else:
-        logger.info('Все города успешно сопоставлены с федеральными округами.')
-     
-    return df
-
-# добавить к данным о погоде Часовой пояс
-def enrich_timezone(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
-    logger.info("Добавление колонки 'timezone'")
-    df["timezone"] = df["city"].map(city_timezone)
-    missing = df[df["timezone"].isna()]["city"].drop_duplicates().tolist()
-    if missing:
-        logger.warning(f'Не найден часовой пояс для: {missing}')
-    else:
-        logger.info('Часовые пояса успешно добавлены.')
-     
-    return df
-
-# добавить к данным о погоде Примерное население города
-def enrich_population(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
-    logger.info("Добавление колонки 'population'")
-    df["population"] = df["city"].map(city_population)
-    df["population"] = pd.to_numeric(df["population"], errors="coerce").astype("Int64")
-    missing = df[df["population"].isna()]["city"].drop_duplicates().tolist()
-    if missing:
-        logger.warning(f'Не найдено население для: {missing}')
-    else:
-        logger.info('Население городов успешно добавлено.')
+        logger.info('Все города успешно обогащены.')
      
     return df
 
@@ -136,9 +127,7 @@ if __name__ == "__main__":
         logger.info(f'Загружено строк: {len(df)}')
         
         # Применяем enrich
-        df = enrich_geo(df, logger)
-        df = enrich_timezone(df, logger)
-        df = enrich_population(df, logger)
+        df = enrich_table(df, logger)
         
         # Сохраняем обновления
         save_enriched_data(df, enriched_der, logger)
