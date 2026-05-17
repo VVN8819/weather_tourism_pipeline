@@ -44,6 +44,36 @@ def find_latest_enriched_csv(base_path: Path) -> Path:
     # Берём файл с самым поздним временем изменения
     return max(files, key=lambda p: p.stat().st_mtime)
 
+# рекомендации по типу туров
+def add_tour_type_recommendations(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+    logger.info("Генерация рекомендаций по типу туров.")
+    
+    def map_tour_type(row):
+        comfort = row["comfort_index"]
+        season = row["tourist_season_match"]
+        activity = row["recommended_activity"]
+        pop = row.get("population", 0)
+        
+    # Логика подбора типа тура
+        if comfort == "Идеально" and season == "Да":
+            return "Экскурсионно-пляжный тур"
+        elif comfort in ["Идеально", "Комфортно"] and season == "Да":
+            if pop > 1_000_000:
+                return "Культурно-исторический тур"
+            return "Природный и активный отдых"
+        elif comfort == "Приемлемо" or season == "Нет":
+            if "Музеи" in activity:
+                return "СПА и оздоровительный тур"
+            return "Городской уикенд / Шоппинг"
+        elif comfort == "Некомфортно":
+            return "Крытые развлечения и деловой туризм"
+        else:
+            return "Горящие туры (специальные условия)"
+        
+    df["recommended_tour_type"] = df.apply(map_tour_type, axis=1)
+    logger.info(f"Распределение типов туров: {df['recommended_tour_type'].value_counts().to_dict()}")
+    return df
+
 # Рейтинг городов по комфортности погоды
 def create_tourism_rating(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
     logger.info("Рейтинг городов по комфортности погоды")
@@ -65,6 +95,9 @@ def create_tourism_rating(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFr
     season_bonus = df["tourist_season_match"].map({"Да": 10, "Нет": 0})
     df["final_score"] = df["comfort_score"] + season_bonus
     
+    # Добавляем рекомендации по типам туров
+    df = add_tour_type_recommendations(df, logger)
+    
     # Сортировка и ранжирование
     df_sorted = df.sort_values("final_score", ascending=False).reset_index(drop=True)
     df_sorted["rank"] = range(1, len(df_sorted) + 1)
@@ -72,12 +105,15 @@ def create_tourism_rating(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFr
     # Отбираем колонки для итоговой витрины
     report_cols = [
         "rank", "city", "comfort_index", "comfort_score", 
-        "tourist_season_match", "final_score", "recommended_activity"
+        "tourist_season_match", "final_score", 
+        "recommended_activity", "recommended_tour_type"
     ]
     df_report = df_sorted[report_cols].copy()
     
     logger.info(f"Рейтинг сформирован. Лидер: {df_report.iloc[0]['city']} ({df_report.iloc[0]['comfort_index']})")
     return df_report
+
+
 
 # Сохранение
 def save_aggregated_data(df: pd.DataFrame, output_dir: Path, logger: logging.Logger) -> Path:
