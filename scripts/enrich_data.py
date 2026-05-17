@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 from datetime import datetime
+import pandas as pd
 
 # ============== Логирование  ===================
 def setup_logger(log_dir: Path) -> logging.Logger:
@@ -50,6 +51,13 @@ if __name__ == "__main__":
     logger.info('Запуск слоя ENRICHED')
     
     cleaned_dir = Path("data/cleaned")
-    # Находим последний очищенный файл
-    latest_csv = find_latest_cleaned_csv(cleaned_dir)
-    logger.info(f'Загрузка: {latest_csv.name}')
+    try:
+        # Находим последний очищенный файл
+        latest_csv = find_latest_cleaned_csv(cleaned_dir)
+        logger.info(f'Загрузка: {latest_csv.name}')
+
+        # Читаем последний очищенный файл
+        df = pd.read_csv(latest_csv)
+        logger.info(f'Загружено строк: {len(df)}')
+    except Exception as e:
+        logger.error(f'Ошибка выполнения: {e}')
