@@ -179,6 +179,57 @@ def clean_data(raw_folder: Path, logger: logging.Logger) -> pd.DataFrame:
         
     return df
 
+# Создадим справочник для ENRICHED
+def clean_data_ref(raw_folder: Path, logger: logging.Logger) -> pd.DataFrame:
+    
+    # применённые правила
+    rules_ref = [
+        "1. Перевод названий городов на русский (словарь)"       
+    ]
+    logger.info('Применённые правила очистки:')
+    for rule in rules_ref:
+        logger.info(f'{rule}')
+    
+    # список для df
+    records_ref = []
+    
+    # считаем возникшие проблемы для logger
+    problems_count_ref = 0
+    
+    # Читает все JSON из папки RAW, извлекает город и температуру
+    for json_file in raw_folder.glob("*.json"):
+        with open(json_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        
+        # Названия городов - стандартизировать на русском языке
+        city_en = data.get("name", "Unknown")
+        city_ru = city_ru_map.get(city_en, city_en)
+        
+        if city_ru != city_en:
+            print(f'{city_en} -> {city_ru}')
+        
+        # Температуру - привести к целым числам
+        if city_en is not None:
+            
+            records_ref.append({
+                "city": city_ru
+            })
+        else:
+            logger.warning(f'Пропуск {city_en}')
+            problems_count_ref += 1
+            continue
+    
+    initial_count = len(records_ref)
+    logger.info(f'Количество исходных записей: {initial_count}')
+    
+    df = pd.DataFrame(records_ref)
+    
+    final_count = len(df)
+    logger.info(f'Количество очищенных записей: {final_count}')
+    logger.info(f'Количество найденных проблем: {problems_count_ref}')
+
+    return df
+
 # Сохранение в CSV
 def save_cleaned_data(df: pd.DataFrame, output_dir: Path, logger: logging.Logger) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -190,6 +241,16 @@ def save_cleaned_data(df: pd.DataFrame, output_dir: Path, logger: logging.Logger
     logger.info(f'Очищенные данные сохранены: {filepath}')
     return filepath
 
+# Сохранение в CSV ref для ENRICHED
+def save_cleaned_data_ref(df: pd.DataFrame, output_dir_ref: Path, logger: logging.Logger) -> Path:
+    output_dir_ref.mkdir(parents=True, exist_ok=True)
+    filename = f"cities_reference.csv"
+    filepath_ref = output_dir_ref / filename
+    
+    df.to_csv(filepath_ref, index=False, encoding="utf-8")
+    logger.info(f'Очищенные данные сохранены для справочника городов: {filepath_ref}')
+    return filepath_ref
+
 if __name__ == "__main__":
     # Сохранение логов
     clean_dir = Path("data/cleaned")
@@ -200,11 +261,18 @@ if __name__ == "__main__":
     raw_folder_path = find_latest_raw_folder(Path("data/raw/openweather_api"))
     
     df_result = clean_data(raw_folder_path, logger)
+    # для ENRICHED
+    df_result_ref = clean_data_ref(raw_folder_path, logger)
     
     if not df_result.empty:
         output_dir = Path("data/cleaned")
         saved_path = save_cleaned_data(df_result, output_dir, logger)
         logger.info(f'\nРезультат:\n{df_result}')
+
+        # для ENRICHED
+        output_dir_ref = Path("data/enriched")
+        saved_path = save_cleaned_data_ref(df_result_ref, output_dir_ref, logger)
+        logger.info(f'\nРезультат:\n{df_result_ref}')
     else:
         logger.error('\nDataFrame пустой. Проверьте наличие .json файлов в указанной папке.')
 
