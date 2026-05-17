@@ -3,6 +3,15 @@ from pathlib import Path
 from datetime import datetime
 import pandas as pd
 
+# Справочник: Федеральный округ
+city_federal_district = {
+    "Москва": "Центральный ФО",
+    "Санкт-Петербург": "Северо-Западный ФО",
+    "Сочи": "Южный ФО",
+    "Казань": "Приволжский ФО",
+    "Новосибирск": "Сибирский ФО"
+}
+
 # ============== Логирование  ===================
 def setup_logger(log_dir: Path) -> logging.Logger:
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -46,6 +55,20 @@ def find_latest_cleaned_csv(base_path: Path) -> Path:
     # Берём файл с самым поздним временем изменения
     return max(files, key=lambda p: p.stat().st_mtime)
 
+def enrich_table(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+    logger.info("Добавление колонки 'federal_district'")
+    
+    # добавить к данным о погоде Федеральный округ
+    df["federal_district"] = df["city"].map(city_federal_district)
+    # города не в списке
+    missing_cities = df[df["federal_district"].isna()]["city"].drop_duplicates().tolist()
+    if missing_cities:
+        logger.warning(f'Не найдены в справочнике Федеральный округ: {missing_cities}')
+    else:
+        logger.info('Все города успешно сопоставлены с федеральными округами.')
+        
+    return df
+
 if __name__ == "__main__":
     logger = setup_logger(Path("data/enriched"))
     logger.info('Запуск слоя ENRICHED')
@@ -59,5 +82,9 @@ if __name__ == "__main__":
         # Читаем последний очищенный файл
         df = pd.read_csv(latest_csv)
         logger.info(f'Загружено строк: {len(df)}')
+        
+        # Применяем enrich_table
+        df = enrich_table(df, logger)
+        print(df)
     except Exception as e:
         logger.error(f'Ошибка выполнения: {e}')
