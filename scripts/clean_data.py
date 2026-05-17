@@ -2,6 +2,7 @@ import pandas as pd
 import json
 from pathlib import Path
 from datetime import datetime
+import logging
 
 city_ru_map = {
     "Moscow": "Москва",
@@ -10,6 +11,41 @@ city_ru_map = {
     "Kazan": "Казань",
     "Novosibirsk": "Новосибирск"
 }
+
+# ============== Логирование  ===================
+def setup_logger(log_dir: Path) -> logging.Logger:
+    log_dir.mkdir(parents=True, exist_ok=True)
+    date_str = datetime.now().strftime("%Y%m%d")
+    log_file = log_dir / f"cleaning_log_{date_str}.txt"
+    
+    logger = logging.getLogger("clean_pipeline")
+    logger.setLevel(logging.INFO)
+    
+    # Очищаем старые handlers
+    if logger.hasHandlers():
+        logger.handlers.clear()
+    
+    # сообщение
+    formatter = logging.Formatter(
+        '%(asctime)s | %(levelname)-8s | %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # сохраняем Лог в файл
+    file_handler = logging.FileHandler(
+        log_file,
+        mode="w",
+        encoding="utf-8"
+    )
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    
+    # Лог в консоль (для удобства отладки)
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    
+    return logger
 
 # Находит самую свежую по дате папку в raw/openweather_api
 def find_latest_raw_folder(base_path: Path) -> Path:
@@ -26,9 +62,28 @@ def find_latest_raw_folder(base_path: Path) -> Path:
 # 1. Температуру - привести к целым числам
 # 2. Названия городов - стандартизировать на русском языке
 # 3. Время - привести к единому формату
-def clean_data(raw_folder: Path) -> pd.DataFrame:
+# 4. Валидация - проверить разумность данных (температура от -50 до +60°C)
+def clean_data(raw_folder: Path, logger: logging.Logger) -> pd.DataFrame:
     
+    # применённые правила
+    rules = [
+        "1. Округление температуры до целых",
+        "2. Перевод названий городов на русский (словарь)",
+        "3. Парсинг времени в формат datetime",
+        "4. Валидация температуры: диапазон [-50; +60]°C",
+        "5. Конвертация давления: гПа в мм рт.ст.",
+        "6. Округление скорости ветра до 0.1 м/с",
+        "7. Приведение описания погоды к нижнему регистру"        
+    ]
+    logger.info('Применённые правила очистки:')
+    for rule in rules:
+        logger.info(f'{rule}')
+    
+    # список для df
     records = []
+    
+    # считаем возникшие проблемы для logger
+    problems_count = 0
     
     # Читает все JSON из папки RAW, извлекает город и температуру
     for json_file in raw_folder.glob("*.json"):
@@ -62,7 +117,8 @@ def clean_data(raw_folder: Path) -> pd.DataFrame:
         
         # Если ключа нет
         if col_time_raw is None and "_metadata" in data:
-            print(f"В {json_file.name} -> _metadata.keys(): {list(data['_metadata'].keys())}")
+            logger.warning(f"В {json_file.name} -> _metadata.keys() нет: {list(data['_metadata'].keys())}")
+            problems_count += 1
         
         # Температуру - привести к целым числам
         if temp_int is not None:
@@ -87,8 +143,13 @@ def clean_data(raw_folder: Path) -> pd.DataFrame:
                 "collection_time": col_time_raw
             })
         else:
-            print(f'Пропуск {city_en}: поле температуры отсутствует')
-        
+            logger.warning(f'Пропуск {city_en}: поле температуры отсутствует')
+            problems_count += 1
+            continue
+    
+    initial_count = len(records)
+    logger.info(f'Количество исходных записей: {initial_count}')
+    
     df = pd.DataFrame(records)
     
     # Валидация - проверить разумность данных (температура от -50 до +60°C)
@@ -98,10 +159,14 @@ def clean_data(raw_folder: Path) -> pd.DataFrame:
         invalid_count = (~valid_temp_mask).sum()
         
         if invalid_count > 0:
-            print(f'Валидация: исключено {invalid_count} строк с температурой вне диапазона [-50°C; +60°C]')
+            logger.warning(f'Валидация: исключено {invalid_count} строк с температурой вне диапазона [-50°C; +60°C]')
             
         # Оставляем только валидные строки + сбрасываем индекс
         df = df[valid_temp_mask].copy().reset_index(drop=True)
+    
+    final_count = len(df)
+    logger.info(f'Количество очищенных записей: {final_count}')
+    logger.info(f'Количество найденных проблем: {problems_count}')
     
     # Время - привести к единому формату
     if not df.empty:
@@ -115,27 +180,32 @@ def clean_data(raw_folder: Path) -> pd.DataFrame:
     return df
 
 # Сохранение в CSV
-def save_cleaned_data(df: pd.DataFrame, output_dir: Path) -> Path:
+def save_cleaned_data(df: pd.DataFrame, output_dir: Path, logger: logging.Logger) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     date_str = datetime.now().strftime("%Y%m%d")
     filename = f"weather_cleaned_{date_str}.csv"
     filepath = output_dir / filename
     
     df.to_csv(filepath, index=False, encoding="utf-8")
-    print(f'Очищенные данные сохранены: {filepath}')
+    logger.info(f'Очищенные данные сохранены: {filepath}')
     return filepath
 
 if __name__ == "__main__":
+    # Сохранение логов
+    clean_dir = Path("data/cleaned")
+    logger = setup_logger(clean_dir)
+    logger.info('Запуск слоя CLEANED')
+    
     # Путь к сырым данным
     raw_folder_path = find_latest_raw_folder(Path("data/raw/openweather_api"))
     
-    df_result = clean_data(raw_folder_path)
+    df_result = clean_data(raw_folder_path, logger)
     
     if not df_result.empty:
         output_dir = Path("data/cleaned")
-        saved_path = save_cleaned_data(df_result, output_dir)
-        print(f'\nРезультат:\n{df_result}')
+        saved_path = save_cleaned_data(df_result, output_dir, logger)
+        logger.info(f'\nРезультат:\n{df_result}')
     else:
-        print('\nDataFrame пустой. Проверьте наличие .json файлов в указанной папке.')
+        logger.error('\nDataFrame пустой. Проверьте наличие .json файлов в указанной папке.')
 
     
