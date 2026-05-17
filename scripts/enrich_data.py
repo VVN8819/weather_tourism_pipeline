@@ -37,6 +37,19 @@ def setup_logger(log_dir: Path) -> logging.Logger:
     
     return logger
 
+# Находит самый свежий по дате файл в data/cleaned/
+def find_latest_cleaned_csv(base_path: Path) -> Path:
+    files = list(base_path.glob("weather_cleaned_*.csv"))
+    if not files:
+        raise FileNotFoundError('В data/cleaned/ не найдено файлов weather_cleaned_*.csv')
+    # Берём файл с самым поздним временем изменения
+    return max(files, key=lambda p: p.stat().st_mtime)
+
 if __name__ == "__main__":
     logger = setup_logger(Path("data/enriched"))
     logger.info('Запуск слоя ENRICHED')
+    
+    cleaned_dir = Path("data/cleaned")
+    # Находим последний очищенный файл
+    latest_csv = find_latest_cleaned_csv(cleaned_dir)
+    logger.info(f'Загрузка: {latest_csv.name}')
