@@ -41,8 +41,7 @@ tourism_season_dict = {
 # ============== Логирование  ===================
 def setup_logger(log_dir: Path) -> logging.Logger:
     log_dir.mkdir(parents=True, exist_ok=True)
-    date_str = datetime.now().strftime("%Y%m%d")
-    log_file = log_dir / f"enrich_log_{date_str}.txt"
+    log_file = log_dir / f"enrich_log.txt"
     
     logger = logging.getLogger("enrich_pipeline")
     logger.setLevel(logging.INFO)
@@ -129,6 +128,29 @@ def enrich_comfort_index(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFra
     logger.info(f'Распределение по уровням: {dist}')
     return df
 
+# Рекомендуемый тип активности
+def enrich_recommended_activity(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+    logger.info("Расчёт рекомендуемого типа активности.")
+    
+    # на основе уровня комфорта
+    activity_map = {
+        "Идеально": "Прогулки и экскурсии",
+        "Комфортно": "Прогулки и экскурсии",
+        "Приемлемо": "Музеи и крытые активности",
+        "Некомфортно": "Домашний отдых",
+        "Недостаточно данных": "Уточните прогноз"
+    }
+    
+    df["recommended_activity"] = df["comfort_index"].map(activity_map)
+    
+    # если в описании есть дождь/гроза, переводим в "Музеи"
+    rain_keywords = ["дождь", "гроза", "ливень", "снег", "метель"]
+    is_rainy = df["weather_description"].str.contains("|".join(rain_keywords), na=False)
+    df.loc[is_rainy & (df["comfort_index"] != "Некомфортно"), "recommended_activity"] = "Музеи и крытые активности"
+    
+    logger.info(f'Распределение активностей: {df["recommended_activity"].value_counts().to_dict()}')
+    return df
+
 # Сохранение
 def save_enriched_data(df: pd.DataFrame, output_dir: Path, logger: logging.Logger) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -157,6 +179,8 @@ if __name__ == "__main__":
         # Применяем enrich
         df = enrich_table(df, logger)
         df = enrich_comfort_index(df, logger)
+        df = enrich_recommended_activity(df, logger)
+        
         
         # Сохраняем обновления
         save_enriched_data(df, enriched_dir, logger)
