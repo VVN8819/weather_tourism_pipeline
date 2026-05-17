@@ -4,41 +4,25 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 
-# Справочник: Федеральный округ
-city_federal_district = {
-    "Москва": "Центральный ФО",
-    "Санкт-Петербург": "Северо-Западный ФО",
-    "Сочи": "Южный ФО",
-    "Казань": "Приволжский ФО",
-    "Новосибирск": "Сибирский ФО"
-}
-
-# Справочник: Часовой пояс
-city_timezone = {
-    "Москва": "UTC+3",
-    "Санкт-Петербург": "UTC+3",
-    "Сочи": "UTC+3",
-    "Казань": "UTC+3",
-    "Новосибирск": "UTC+7"
-}
-
-# Примерное население города
-city_population = {
-    "Москва": 13100000,
-    "Санкт-Петербург": 5600000,
-    "Сочи": 450000,
-    "Казань": 1300000,
-    "Новосибирск": 1630000
-}
-
-# Сезон
-tourism_season_dict = {
-    "Москва": "Круглогодично",
-    "Санкт-Петербург": "Май-Сентябрь",
-    "Сочи": "Май-Октябрь",
-    "Казань": "Май-Сентябрь",
-    "Новосибирск": "Июнь-Август"
-}
+# Загрузка справочника из CSV
+def load_city_reference(ref_path: Path) -> dict:
+    
+    if not ref_path.exists():
+        raise FileNotFoundError(f'Не найден справочник: {ref_path}')
+    
+    ref_df = pd.read_csv(ref_path, encoding="utf-8")
+    
+    # Проверка обязательных колонок
+    required = {"city", "federal_district", "timezone", "population", "tourism_season"}
+    missing = required - set(ref_df.columns)
+    if missing:
+        raise ValueError(f'В справочнике отсутствуют колонки: {missing}')
+    
+    # Преобразуем каждую колонку в словарь {city: value}
+    return {
+        col: ref_df.set_index("city")[col].to_dict()
+        for col in ref_df.columns if col != "city"
+    }
 
 # ============== Логирование  ===================
 def setup_logger(log_dir: Path) -> logging.Logger:
@@ -83,14 +67,14 @@ def find_latest_cleaned_csv(base_path: Path) -> Path:
     return max(files, key=lambda p: p.stat().st_mtime)
 
 # обогащение данных о погоде
-def enrich_table(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+def enrich_table(df: pd.DataFrame, ref_dicts: dict, logger: logging.Logger) -> pd.DataFrame:
     logger.info("Обогащение данных встроенными справочниками")
     
     # применение справочников к колонке city
-    df["federal_district"] = df["city"].map(city_federal_district)
-    df["timezone"] = df["city"].map(city_timezone)
-    df["population"] = df["city"].map(city_population)
-    df["tourism_season"] = df["city"].map(tourism_season_dict)
+    df["federal_district"] = df["city"].map(ref_dicts["federal_district"])
+    df["timezone"] = df["city"].map(ref_dicts["timezone"])
+    df["population"] = df["city"].map(ref_dicts["population"])
+    df["tourism_season"] = df["city"].map(ref_dicts["tourism_season"])
     
     df["population"] = pd.to_numeric(df["population"], errors="coerce").astype("Int64")
     
@@ -199,7 +183,12 @@ if __name__ == "__main__":
     
     cleaned_dir = Path("data/cleaned")
     enriched_dir = Path("data/enriched")
+    ref_path = Path("data/enriched/cities_reference.csv")
     try:
+        # Загружаем справочник из CSV
+        ref_dicts = load_city_reference(ref_path)
+        logger.info(f'Справочник загружен: {len(ref_dicts["tourism_season"])} городов')
+        
         # Находим последний очищенный файл
         latest_csv = find_latest_cleaned_csv(cleaned_dir)
         logger.info(f'Загрузка: {latest_csv.name}')
@@ -209,7 +198,7 @@ if __name__ == "__main__":
         logger.info(f'Загружено строк: {len(df)}')
         
         # Применяем enrich
-        df = enrich_table(df, logger)
+        df = enrich_table(df, ref_dicts, logger)
         df = enrich_comfort_index(df, logger)
         df = enrich_recommended_activity(df, logger)
         df = enrich_season_match(df, logger)
@@ -219,5 +208,10 @@ if __name__ == "__main__":
         logger.info(f'Добавление завершено')
         
         logger.info(f'\nРезультат:\n{df}')
+    
+    except FileNotFoundError as e:
+        logger.error(f'Файл не найден: {e}')
+    except ValueError as e:
+        logger.error(f'Ошибка в справочнике: {e}')
     except Exception as e:
         logger.error(f'Ошибка выполнения: {e}')
