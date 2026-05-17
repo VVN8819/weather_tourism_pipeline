@@ -44,6 +44,26 @@ def find_latest_enriched_csv(base_path: Path) -> Path:
     # Берём файл с самым поздним временем изменения
     return max(files, key=lambda p: p.stat().st_mtime)
 
+# Лучшее время для посещения
+def add_best_visit_time(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+    logger.info("Определение лучшего времени для посещения.")
+    
+    time_map = {
+        "Круглогодично": "Круглый год",
+        "Май-Сентябрь": "Май — Сентябрь",
+        "Май-Октябрь": "Май — Октябрь",
+        "Июнь-Август": "Июнь — Август"
+    }
+    
+    # Форматируем сезон для бизнес-отчёта
+    df["best_visit_time"] = df["tourism_season"].map(time_map).fillna(df["tourism_season"])
+    
+    # Если сейчас подходящий сезон, добавляем пометку
+    df.loc[df["tourist_season_match"] == "Да", "best_visit_time"] += "(Сезон открыт)"
+    
+    logger.info(f"Лучшее время определено для {len(df)} городов.")
+    return df
+
 # рекомендации по типу туров
 def add_tour_type_recommendations(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
     logger.info("Генерация рекомендаций по типу туров.")
@@ -95,8 +115,9 @@ def create_tourism_rating(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFr
     season_bonus = df["tourist_season_match"].map({"Да": 10, "Нет": 0})
     df["final_score"] = df["comfort_score"] + season_bonus
     
-    # Добавляем рекомендации по типам туров
+    # Добавляем рекомендации
     df = add_tour_type_recommendations(df, logger)
+    df = add_best_visit_time(df, logger)
     
     # Сортировка и ранжирование
     df_sorted = df.sort_values("final_score", ascending=False).reset_index(drop=True)
@@ -106,7 +127,7 @@ def create_tourism_rating(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFr
     report_cols = [
         "rank", "city", "comfort_index", "comfort_score", 
         "tourist_season_match", "final_score", 
-        "recommended_activity", "recommended_tour_type"
+        "recommended_activity", "recommended_tour_type", "best_visit_time"  
     ]
     df_report = df_sorted[report_cols].copy()
     
