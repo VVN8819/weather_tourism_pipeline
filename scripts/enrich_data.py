@@ -69,11 +69,22 @@ def enrich_table(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
         
     return df
 
+# Сохранение
+def save_enriched_data(df: pd.DataFrame, output_dir: Path, logger: logging.Logger) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    date_str = datetime.now().strftime("%Y%m%d")
+    filepath = output_dir / f"weather_enriched_{date_str}.csv"
+    
+    df.to_csv(filepath, index=False, encoding="utf-8")
+    logger.info(f'Сохранено: {filepath}')
+    return filepath
+
 if __name__ == "__main__":
     logger = setup_logger(Path("data/enriched"))
     logger.info('Запуск слоя ENRICHED')
     
     cleaned_dir = Path("data/cleaned")
+    enriched_der = Path("data/enriched")
     try:
         # Находим последний очищенный файл
         latest_csv = find_latest_cleaned_csv(cleaned_dir)
@@ -86,5 +97,9 @@ if __name__ == "__main__":
         # Применяем enrich_table
         df = enrich_table(df, logger)
         print(df)
+        
+        # Сохраняем обновления
+        save_enriched_data(df, enriched_der, logger)
+        logger.info(f'Добавление завершено')
     except Exception as e:
         logger.error(f'Ошибка выполнения: {e}')
