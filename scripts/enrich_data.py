@@ -151,6 +151,36 @@ def enrich_recommended_activity(df: pd.DataFrame, logger: logging.Logger) -> pd.
     logger.info(f'Распределение активностей: {df["recommended_activity"].value_counts().to_dict()}')
     return df
 
+# подходит ли сезон для туризма
+def enrich_season_match(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+    logger.info("Проверка соответствия месяца туристическому сезону.")
+    
+    df["collection_time"] = pd.to_datetime(df["collection_time"], errors="coerce")
+    df["month"] = df["collection_time"].dt.month
+    
+    season_months_map = {
+        "Круглогодично": set(range(1, 13)),
+        "Май-Сентябрь": {5, 6, 7, 8, 9},
+        "Май-Октябрь": {5, 6, 7, 8, 9, 10},
+        "Июнь-Август": {6, 7, 8}
+    }
+    
+    def check_match(row):
+        season = row["tourism_season"]
+        month = row["month"]
+        if pd.isna(month) or season not in season_months_map:
+            return False
+        return month in season_months_map[season]
+    
+    df["tourist_season_match"] = df.apply(check_match, axis=1)
+    
+    # Показываем "Да"/"Нет"
+    df["tourist_season_match"] = df["tourist_season_match"].map({True: "Да", False: "Нет"})
+    df.drop(columns=["month"], inplace=True)  # Убираем техническую колонку
+    
+    logger.info(f"Совпадение с сезоном: {df['tourist_season_match'].value_counts().to_dict()}")
+    return df
+
 # Сохранение
 def save_enriched_data(df: pd.DataFrame, output_dir: Path, logger: logging.Logger) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -180,7 +210,7 @@ if __name__ == "__main__":
         df = enrich_table(df, logger)
         df = enrich_comfort_index(df, logger)
         df = enrich_recommended_activity(df, logger)
-        
+        df = enrich_season_match(df, logger)
         
         # Сохраняем обновления
         save_enriched_data(df, enriched_dir, logger)
