@@ -176,10 +176,11 @@ def create_district_summary(df: pd.DataFrame, logger: logging.Logger) -> pd.Data
 
 # Витрина 3: “Отчет для турагентств”
 # • Топ-3 города для поездок сегодня
+# • Города, где лучше остаться дома
 def travel_recommendations_report(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
-    logger.info("Отчет для турагентств: Топ-3 города на сегодня")
+    logger.info("Отчет для турагентств: Топ-3 города на сегодня и где лучше остаться дома")
     
-    # Топ-3 города для поездок сегодня
+    # G. Топ-3 города для поездок сегодня
     # 1 строка на город (на случай повторных запусков)
     df = df.drop_duplicates(subset=["city"], keep="last").copy()
     
@@ -201,8 +202,48 @@ def travel_recommendations_report(df: pd.DataFrame, logger: logging.Logger) -> p
     df_top3 = df.sort_values("prior_score", ascending=False).head(3).copy()
     df_top3["recommendation_priority"] = ["Продавать в первую очередь", "Активно предлагать", "Альтернатива"]
     
+    # H. Города, где лучше остаться дома
+    bad_weather_keywords = ["гроза", "ливень", "метель", "шторм", "ураган", "туман"]
+    
+    def is_bad_for_tourism(row):
+        comfort = row["comfort_index"]
+        season = row["tourist_season_match"]
+        weather = str(row["weather_description"]).lower()
+        temp = row.get("temperature", 999)
+        
+        # некомфортно + не сезон
+        if comfort == "Некомфортно" and season == "Нет":
+            return True
+        # Экстремальная температура
+        if temp < -10 or temp > 35:
+            return True
+        # Опасные погодные явления
+        if any(keyword in weather for keyword in bad_weather_keywords):
+            return True
+        # Недостаточно данных для рекомендации
+        if comfort == "Недостаточно данных":
+            return True
+        return False
+    
+    df_stay_home = df[df.apply(is_bad_for_tourism, axis=1)].copy()
+    
+    if not df_stay_home.empty:
+        df_stay_home["stay_home_reason"] = df_stay_home.apply(
+            lambda row: f"{row['comfort_index']}, {row['weather_description']}" if pd.notna(row['weather_description']) else f"{row['comfort_index']}",
+            axis=1
+        )
+        logger.warning(f"Найдено {len(df_stay_home)} городов, где не рекомендуется туризм: {[c for c in df_stay_home['city']]}")
+    else:
+        logger.info("Все города пригодны для туризма сегодня.")
+        df_stay_home["stay_home_reason"] = None
+    
+    # Объединяем два списка в один отчет с флагом типа рекомендации
+    df_top3["report_type"] = "Рекомендовать"
+    df_stay_home["report_type"] = "Не рекомендовать"
+    
     # Бизнес-колонки для турагентов
     agency_cols = [
+        "report_type",
         "recommendation_priority",  # Приоритет продажи
         "city",
         "temperature",
@@ -212,8 +253,22 @@ def travel_recommendations_report(df: pd.DataFrame, logger: logging.Logger) -> p
         "prior_score"
     ]
     
-    logger.info(f"Топ-3 города для поездок сегодня сформирован: {', '.join(df_top3['city'].tolist())}")
-    return df_top3[agency_cols]
+    # Для df_stay_home заполняем пустые колонки
+    for col in ["recommendation_priority", "recommended_activity"]:
+        if col not in df_stay_home.columns:
+            df_stay_home[col] = "—"
+    
+    # Объединяем и сортируем: сначала "рекомендовать", потом "не рекомендовать"
+    df_report = pd.concat([df_top3[agency_cols], df_stay_home[agency_cols]], ignore_index=True)
+    df_report = df_report.sort_values(["report_type", "prior_score" if "prior_score" in df_report.columns else "temperature"], 
+                                      ascending=[False, False]).reset_index(drop=True)
+    
+    # Логируем итог
+    recommend_count = (df_report["report_type"] == "Рекомендовать").sum()
+    avoid_count = (df_report["report_type"] == "Не рекомендовать").sum()
+    logger.info(f"Отчет сформирован: {recommend_count} к продаже, {avoid_count} к паузе")
+    
+    return df_report
     
 
 # Сохранение
