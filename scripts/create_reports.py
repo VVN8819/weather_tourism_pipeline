@@ -174,6 +174,48 @@ def create_district_summary(df: pd.DataFrame, logger: logging.Logger) -> pd.Data
     logger.info(f'Сводная создана для {len(summary)} округов.')
     return summary
 
+# Витрина 3: “Отчет для турагентств”
+# • Топ-3 города для поездок сегодня
+def travel_recommendations_report(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+    logger.info("Отчет для турагентств: Топ-3 города на сегодня")
+    
+    # Топ-3 города для поездок сегодня
+    # 1 строка на город (на случай повторных запусков)
+    df = df.drop_duplicates(subset=["city"], keep="last").copy()
+    
+    # справочник баллов
+    score_map = {
+        "Идеально": 100,
+        "Комфортно": 80,
+        "Приемлемо": 50,
+        "Некомфортно": 20,
+        "Недостаточно данных": 0
+    }
+    df["comfort_score"] = df["comfort_index"].map(score_map)
+    
+    # Бонус за совпадение с туристическим сезоном
+    season_bonus = df["tourist_season_match"].map({"Да": 10, "Нет": 0})
+    df["prior_score"] = df["comfort_score"] + season_bonus
+    
+    # Сортируем и берём Топ-3
+    df_top3 = df.sort_values("prior_score", ascending=False).head(3).copy()
+    df_top3["recommendation_priority"] = ["Продавать в первую очередь", "Активно предлагать", "Альтернатива"]
+    
+    # Бизнес-колонки для турагентов
+    agency_cols = [
+        "recommendation_priority",  # Приоритет продажи
+        "city",
+        "temperature",
+        "comfort_index",
+        "weather_description",
+        "recommended_activity",
+        "prior_score"
+    ]
+    
+    logger.info(f"Топ-3 города для поездок сегодня сформирован: {', '.join(df_top3['city'].tolist())}")
+    return df_top3[agency_cols]
+    
+
 # Сохранение
 def save_aggregated_data(df: pd.DataFrame, output_dir: Path, filename: str, logger: logging.Logger) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -208,6 +250,10 @@ if __name__ == "__main__":
         df_districts = create_district_summary(df, logger)
         save_aggregated_data(df_districts, aggregated_dir, f"federal_districts_summary.csv", logger)
         logger.info(f'\nИтоговая сводная:\n{df_districts.to_string(index=False)}')
+        
+        df_agency = travel_recommendations_report(df, logger)
+        save_aggregated_data(df_agency, aggregated_dir, f"travel_recommendations.csv", logger)
+        logger.info(f'\nОтчет для турагентств:\n{df_agency.to_string(index=False)}')
         
         logger.info('Витрины успешно созданы')
         
