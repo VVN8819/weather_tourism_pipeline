@@ -127,10 +127,16 @@ def create_tourism_rating(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFr
 # Витрина 2: “Сводка по федеральным округам”
 # • Средняя температура по округам
 def create_district_summary(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
-    logger.info("Сводка по федеральным округам: Средняя температура")
+    logger.info("Сводная по федеральным округам: Средняя температура")
     
-    summary = df.groupby("federal_district").agg(
+    # Создаём временную копию
+    df_temp = df.copy()
+    # город "комфортный", если индекс "Идеально" или "Комфортно"
+    df_temp["is_comfortable"] = df_temp["comfort_index"].isin(["Идеально", "Комфортно"])
+    
+    summary = df_temp.groupby("federal_district").agg(
         cities_count=("city", "nunique"),
+        comfortable_cities_count=("is_comfortable", "sum"),
         avg_temperature=("temperature", "mean"),
         avg_feels_like=("feels_like", "mean")
     ).reset_index()
@@ -138,9 +144,12 @@ def create_district_summary(df: pd.DataFrame, logger: logging.Logger) -> pd.Data
     # Округление
     for col in ["avg_temperature", "avg_feels_like"]:
         summary[col] = summary[col].round(1)
-        
+    
+    # счётчик в целое число, NaN, если будет пусто
+    summary["comfortable_cities_count"] = summary["comfortable_cities_count"].astype("Int64")
+    
     summary = summary.sort_values("avg_temperature", ascending=False).reset_index(drop=True)
-    logger.info(f'Сводка создана для {len(summary)} округов.')
+    logger.info(f'Сводная создана для {len(summary)} округов.')
     return summary
 
 # Сохранение
@@ -176,7 +185,7 @@ if __name__ == "__main__":
         # Создаем сводную Витрина 2
         df_districts = create_district_summary(df, logger)
         save_aggregated_data(df_districts, aggregated_dir, f"federal_districts_summary.csv", logger)
-        logger.info(f'\nИтоговая сводка:\n{df_districts.to_string(index=False)}')
+        logger.info(f'\nИтоговая сводная:\n{df_districts.to_string(index=False)}')
         
         logger.info('Витрины успешно созданы')
         
