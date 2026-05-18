@@ -44,30 +44,46 @@ def find_latest_enriched_csv(base_path: Path) -> Path:
     # Берём файл с самым поздним временем изменения
     return max(files, key=lambda p: p.stat().st_mtime)
 
+# ВИТРИНА 1: Рейтинг городов + Типы туров + Лучшее время
+# Рейтинг городов по комфортности погоды
+# рекомендации по типу туров
 # Лучшее время для посещения
-def add_best_visit_time(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
-    logger.info("Определение лучшего времени для посещения.")
+def create_tourism_rating(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+    logger.info("Рейтинг городов + Типы туров + Лучшее время")
     
+    # A. Рейтинг городов по комфортности погоды
+    # 1 строка на город (на случай повторных запусков)
+    df = df.drop_duplicates(subset=["city"], keep="last").copy()
+    
+    # справочник баллов
+    score_map = {
+        "Идеально": 100,
+        "Комфортно": 80,
+        "Приемлемо": 50,
+        "Некомфортно": 20,
+        "Недостаточно данных": 0
+    }
+    df["comfort_score"] = df["comfort_index"].map(score_map)
+    
+    # Бонус за совпадение с туристическим сезоном
+    season_bonus = df["tourist_season_match"].map({"Да": 10, "Нет": 0})
+    df["final_score"] = df["comfort_score"] + season_bonus
+    
+    # B. Лучшее время для посещения
     time_map = {
         "Круглогодично": "Круглый год",
         "Май-Сентябрь": "Май — Сентябрь",
         "Май-Октябрь": "Май — Октябрь",
         "Июнь-Август": "Июнь — Август"
     }
-    
     # Форматируем сезон для бизнес-отчёта
     df["best_visit_time"] = df["tourism_season"].map(time_map).fillna(df["tourism_season"])
     
     # Если сейчас подходящий сезон, добавляем пометку
     df.loc[df["tourist_season_match"] == "Да", "best_visit_time"] += "(Сезон открыт)"
-    
     logger.info(f"Лучшее время определено для {len(df)} городов.")
-    return df
-
-# рекомендации по типу туров
-def add_tour_type_recommendations(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
-    logger.info("Генерация рекомендаций по типу туров.")
     
+    # C. рекомендации по типу туров
     def map_tour_type(row):
         comfort = row["comfort_index"]
         season = row["tourist_season_match"]
@@ -92,32 +108,6 @@ def add_tour_type_recommendations(df: pd.DataFrame, logger: logging.Logger) -> p
         
     df["recommended_tour_type"] = df.apply(map_tour_type, axis=1)
     logger.info(f"Распределение типов туров: {df['recommended_tour_type'].value_counts().to_dict()}")
-    return df
-
-# Рейтинг городов по комфортности погоды
-def create_tourism_rating(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
-    logger.info("Рейтинг городов по комфортности погоды")
-    
-    # 1 строка на город (на случай повторных запусков)
-    df = df.drop_duplicates(subset=["city"], keep="last").copy()
-    
-    # справочник баллов
-    score_map = {
-        "Идеально": 100,
-        "Комфортно": 80,
-        "Приемлемо": 50,
-        "Некомфортно": 20,
-        "Недостаточно данных": 0
-    }
-    df["comfort_score"] = df["comfort_index"].map(score_map)
-    
-    # Бонус за совпадение с туристическим сезоном
-    season_bonus = df["tourist_season_match"].map({"Да": 10, "Нет": 0})
-    df["final_score"] = df["comfort_score"] + season_bonus
-    
-    # Добавляем рекомендации
-    df = add_tour_type_recommendations(df, logger)
-    df = add_best_visit_time(df, logger)
     
     # Сортировка и ранжирование
     df_sorted = df.sort_values("final_score", ascending=False).reset_index(drop=True)
@@ -133,8 +123,6 @@ def create_tourism_rating(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFr
     
     logger.info(f"Рейтинг сформирован. Лидер: {df_report.iloc[0]['city']} ({df_report.iloc[0]['comfort_index']})")
     return df_report
-
-
 
 # Сохранение
 def save_aggregated_data(df: pd.DataFrame, output_dir: Path, logger: logging.Logger) -> Path:
