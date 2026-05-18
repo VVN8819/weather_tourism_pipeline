@@ -124,10 +124,29 @@ def create_tourism_rating(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFr
     logger.info(f"Рейтинг сформирован. Лидер: {df_report.iloc[0]['city']} ({df_report.iloc[0]['comfort_index']})")
     return df_report
 
+# Витрина 2: “Сводка по федеральным округам”
+# • Средняя температура по округам
+def create_district_summary(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
+    logger.info("Сводка по федеральным округам: Средняя температура")
+    
+    summary = df.groupby("federal_district").agg(
+        cities_count=("city", "nunique"),
+        avg_temperature=("temperature", "mean"),
+        avg_feels_like=("feels_like", "mean")
+    ).reset_index()
+    
+    # Округление
+    for col in ["avg_temperature", "avg_feels_like"]:
+        summary[col] = summary[col].round(1)
+        
+    summary = summary.sort_values("avg_temperature", ascending=False).reset_index(drop=True)
+    logger.info(f'Сводка создана для {len(summary)} округов.')
+    return summary
+
 # Сохранение
-def save_aggregated_data(df: pd.DataFrame, output_dir: Path, logger: logging.Logger) -> Path:
+def save_aggregated_data(df: pd.DataFrame, output_dir: Path, filename: str, logger: logging.Logger) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
-    filepath = output_dir / f"city_tourism_rating.csv"
+    filepath = output_dir / filename
     
     df.to_csv(filepath, index=False, encoding="utf-8")
     logger.info(f'Сохранено: {filepath}')
@@ -148,14 +167,18 @@ if __name__ == "__main__":
         df = pd.read_csv(latest_csv)
         logger.info(f'Загружено строк: {len(df)}')
         
-        # Создаём рейтинг
+        # Создаём рейтинг Витрина 1
         df_rating = create_tourism_rating(df, logger)
-        
         # Сохраняем витрину
-        save_aggregated_data(df_rating, aggregated_dir, logger)
-        
+        save_aggregated_data(df_rating, aggregated_dir, f"city_tourism_rating.csv", logger)
         logger.info(f'\nИтоговый рейтинг:\n{df_rating.to_string(index=False)}')
-        logger.info('Витрина "Рейтинг городов для туризма" успешно создана')
+        
+        # Создаем сводную Витрина 2
+        df_districts = create_district_summary(df, logger)
+        save_aggregated_data(df_districts, aggregated_dir, f"federal_districts_summary.csv", logger)
+        logger.info(f'\nИтоговая сводка:\n{df_districts.to_string(index=False)}')
+        
+        logger.info('Витрины успешно созданы')
         
     except FileNotFoundError as e:
         logger.error(f'Файл не найден: {e}')
