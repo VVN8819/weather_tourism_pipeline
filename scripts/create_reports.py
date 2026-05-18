@@ -126,14 +126,17 @@ def create_tourism_rating(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFr
 
 # Витрина 2: “Сводка по федеральным округам”
 # • Средняя температура по округам
+# • Количество “комфортных” городов 
+# • Общие рекомендации
 def create_district_summary(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
-    logger.info("Сводная по федеральным округам: Средняя температура")
+    logger.info("Сводная по федеральным округам: “комфортный” город + средняя температура + общие рекомендации")
     
     # Создаём временную копию
     df_temp = df.copy()
-    # город "комфортный", если индекс "Идеально" или "Комфортно"
+    # D. город "комфортный", если индекс "Идеально" или "Комфортно"
     df_temp["is_comfortable"] = df_temp["comfort_index"].isin(["Идеально", "Комфортно"])
     
+    # E. Средняя температура по округам
     summary = df_temp.groupby("federal_district").agg(
         cities_count=("city", "nunique"),
         comfortable_cities_count=("is_comfortable", "sum"),
@@ -147,6 +150,25 @@ def create_district_summary(df: pd.DataFrame, logger: logging.Logger) -> pd.Data
     
     # счётчик в целое число, NaN, если будет пусто
     summary["comfortable_cities_count"] = summary["comfortable_cities_count"].astype("Int64")
+    
+    # F. Общие рекомендации
+    def generate_recommendation(row):
+        temp = row["avg_temperature"]
+        comfort_ratio = row["comfortable_cities_count"] / row["cities_count"] if row["cities_count"] > 0 else 0
+        
+        # Логика рекомендаций
+        if temp >= 22 and comfort_ratio >= 0.7:
+            return "Идеальные условия для туризма"
+        elif temp >= 18 and comfort_ratio >= 0.5:
+            return "Комфортная погода в большинстве городов"
+        elif temp < 5:
+            return "Предлагать СПА/горнолыжные туры"
+        elif comfort_ratio < 0.3:
+            return "Крытые активности и деловой туризм"
+        else:
+            return "Мониторить прогноз"
+    summary["recommendations"] = summary.apply(generate_recommendation, axis=1)
+    logger.info(f'Рекомендации для {len(summary)} округов готовы.')
     
     summary = summary.sort_values("avg_temperature", ascending=False).reset_index(drop=True)
     logger.info(f'Сводная создана для {len(summary)} округов.')
