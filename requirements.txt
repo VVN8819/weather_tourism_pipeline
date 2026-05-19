@@ -1,3 +1,36 @@
 requests>=2.31.0
 python-dotenv>=1.0.0
 pandas>=2.0.0
+
+# collect_data.py
+import requests
+import time
+from dotenv import load_dotenv
+import os
+import json
+from pathlib import Path
+from datetime import datetime
+import logging
+
+# clean_data.py
+import pandas as pd
+import json
+from pathlib import Path
+from datetime import datetime
+import logging
+
+# enrich_data.py
+import logging
+from pathlib import Path
+from datetime import datetime
+import pandas as pd
+import numpy as np
+
+# create_reference.py
+import pandas as pd
+from pathlib import Path
+
+# create_reports.py
+import logging
+from pathlib import Path
+import pandas as pd
