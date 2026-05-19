@@ -42,7 +42,7 @@
 
 # Структура
 
-data/ - Папка с данными (4 логических слоя)
+    data/ - Папка с данными (4 логических слоя)
 
     aggregated/ - Слой 4: Агрегированные витрины для бизнеса
 
@@ -68,7 +68,7 @@ data/ - Папка с данными (4 логических слоя)
 
       weather_enriched_20260518.csv - Данные + комфорт + рекомендации + сезон
 
-raw/ - Слой 1: Сырые данные от API
+    raw/ - Слой 1: Сырые данные от API
 
       openweather_api/2026/05/16/ - Папки по дате сбора
         collection_log.txt - Лог сбора данных
@@ -78,24 +78,15 @@ raw/ - Слой 1: Сырые данные от API
         saint_petersburg_20260516.json - Сырые JSON от OpenWeather API по городу Санкт-Петербург
         sochi_20260516.json - Сырые JSON от OpenWeather API по городу Сочи
 
-scripts/ - Python-скрипты пайплайна
+    scripts/ - Python-скрипты пайплайна
         collect_data.py - Сбор данных с OpenWeather API
         clean_data.py - Очистка и валидация данных
         enrich_data.py - Обогащение справочниками
         create_reports.py - Создание бизнес-витрин
         create_reference.py - Создание справочника городов
 
-.env - Переменные окружения (API-ключи)
-.gitignore - Игнорируемые файлы для Git
-LICENSE - Лицензия проекта
-README.md - Документация проекта
-requirements.txt - Зависимости Python (pandas, requests и др.)
-
-
-
-
-weather_data = response.json()
-            return weather_data
-
-timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    filename = f'{city.lower().replace(" ", "_")}_{timestamp}.json'
+    .env - Переменные окружения (API-ключи)
+    .gitignore - Игнорируемые файлы для Git
+    LICENSE - Лицензия проекта
+    README.md - Документация проекта
+    requirements.txt - Зависимости Python (pandas, requests и др.)
