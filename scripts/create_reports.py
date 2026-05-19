@@ -177,8 +177,9 @@ def create_district_summary(df: pd.DataFrame, logger: logging.Logger) -> pd.Data
 # Витрина 3: “Отчет для турагентств”
 # • Топ-3 города для поездок сегодня
 # • Города, где лучше остаться дома
+# • Специальные рекомендации (взять зонт, теплую одежду и т.д.)
 def travel_recommendations_report(df: pd.DataFrame, logger: logging.Logger) -> pd.DataFrame:
-    logger.info("Отчет для турагентств: Топ-3 города на сегодня и где лучше остаться дома")
+    logger.info("Отчет для турагентств: Топ-3 города на сегодня и где лучше остаться дома + Специальные рекомендации")
     
     # G. Топ-3 города для поездок сегодня
     # 1 строка на город (на случай повторных запусков)
@@ -237,9 +238,74 @@ def travel_recommendations_report(df: pd.DataFrame, logger: logging.Logger) -> p
         logger.info("Все города пригодны для туризма сегодня.")
         df_stay_home["stay_home_reason"] = None
     
+    # I. Специальные рекомендации
+    # Генерирует список рекомендаций на основе погодных условий
+    def get_special_recommendations(row):
+        
+        recommendations = []
+        
+        temp = row.get("temperature", 20)
+        humidity = row.get("humidity", 50)
+        wind = row.get("wind_speed", 0)
+        weather = str(row.get("weather_description", "")).lower()
+        
+        # Осадки
+        if any(k in weather for k in ["дождь", "ливень", "гроза", "снег", "метель"]):
+            recommendations.append("Взять зонт или дождевик")
+        
+        # Температура
+        if temp < 5:
+            recommendations.append("Тёплая одежда и шапка")
+        elif temp < 15:
+            recommendations.append("Ветровка или лёгкая куртка")
+        elif temp > 28:
+            recommendations.append("Лёгкая одежда и крем от солнца")
+        if temp > 30:
+            recommendations.append("Пить больше воды, избегать солнца в пик")
+            
+        # Ветер
+        if wind >= 10:
+            recommendations.append("Ветровка, сильный ветер")
+        elif wind >= 5:
+            recommendations.append("Головной убор может сдуть")
+            
+        # Влажность
+        if humidity >= 80:
+            recommendations.append("Дышащая одежда, очень влажно")
+        elif humidity <= 30:
+            recommendations.append("Увлажняющий крем, низкая влажность")
+            
+        # Солнце
+        if "ясно" in weather or "солнце" in weather:
+            recommendations.append("Солнцезащитные очки, головной убор")
+        
+        # Туман
+        if "туман" in weather:
+            recommendations.append("Светлая одежда")
+        
+        # Снег
+        if any(k in weather for k in ["снег", "гололёд", "изморозь"]):
+            recommendations.append("Не скользящая обувь")
+            
+        # Если ничего не подошло
+        if not recommendations:
+            recommendations.append("Погода благоприятная, стандартный гардероб")
+        
+        return "; ".join(recommendations)
+    
+    # Применяем ко всем городам
+    df_top3["special_recommendations"] = df_top3.apply(get_special_recommendations, axis=1)
+    df_stay_home["special_recommendations"] = df_stay_home.apply(get_special_recommendations, axis=1)
+    logger.info("Специальные рекомендации готовы для всех городов")
+    
     # Объединяем два списка в один отчет с флагом типа рекомендации
     df_top3["report_type"] = "Рекомендовать"
     df_stay_home["report_type"] = "Не рекомендовать"
+    
+    # Для df_stay_home заполняем пустые колонки
+    for col in ["recommendation_priority", "recommended_activity"]:
+        if col not in df_stay_home.columns:
+            df_stay_home[col] = "—"
     
     # Бизнес-колонки для турагентов
     agency_cols = [
@@ -250,18 +316,18 @@ def travel_recommendations_report(df: pd.DataFrame, logger: logging.Logger) -> p
         "comfort_index",
         "weather_description",
         "recommended_activity",
-        "prior_score"
+        "prior_score",
+        "special_recommendations"
     ]
     
-    # Для df_stay_home заполняем пустые колонки
-    for col in ["recommendation_priority", "recommended_activity"]:
-        if col not in df_stay_home.columns:
-            df_stay_home[col] = "—"
-    
+    sort_col = "prior_score" if "prior_score" in df_top3.columns else "temperature"
     # Объединяем и сортируем: сначала "рекомендовать", потом "не рекомендовать"
     df_report = pd.concat([df_top3[agency_cols], df_stay_home[agency_cols]], ignore_index=True)
-    df_report = df_report.sort_values(["report_type", "prior_score" if "prior_score" in df_report.columns else "temperature"], 
-                                      ascending=[False, False]).reset_index(drop=True)
+    
+    df_report = df_report.sort_values(
+        ["report_type", sort_col], 
+        ascending=[False, False]
+    ).reset_index(drop=True)
     
     # Логируем итог
     recommend_count = (df_report["report_type"] == "Рекомендовать").sum()
